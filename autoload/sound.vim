@@ -14,11 +14,11 @@ function! s:wav_cmd(wav)
 		let cmd = "aplay %s"
 	elseif executable("sndrec32")
 		let cmd = "sndrec32 /embedding /play /close %s"
+	elseif executable("ruby") && (has("win32") || has("win64"))
+		let cmd = "ruby -r \"Win32API\" -e \"Win32API.new('winmm','PlaySound', 'ppl', 'i').call('%s',nil,0)\""
 	elseif executable("powershell")
 		let cmd = "powershell -Command \"(New-Object System.Media.SoundPlayer %s).PlaySync()\""
 		return printf(cmd, string(a:wav))
-	elseif executable("ruby") && (has("win32") || has("win64"))
-		let cmd = "ruby -r \"Win32API\" -e \"Win32API.new('winmm','PlaySound', 'ppl', 'i').call('%s',nil,0)\""
 	endif
 	return printf(cmd, a:wav)
 endfunction
@@ -41,12 +41,12 @@ function! s:play_wav_list(wavs)
 	if empty(wavs)
 		return ""
 	endif
-	if executable("powershell")
-		let expr = join(map(wavs, "\"(New-Object System.Media.SoundPlayer \" . string(v:val) . \").PlaySync()\""), ';')
-		return vimproc#system_bg(printf("powershell -Command \"%s\"", expr))
-	elseif executable("ruby") && (has("win32") || has("win64"))
+	if executable("ruby") && (has("win32") || has("win64"))
 		let expr = join(map(wavs, "\"Win32API.new('winmm','PlaySound', 'ppl', 'i').call(\" . string(v:val) . \",nil,0)\""), ';')
 		return vimproc#system_bg(printf("ruby -r \"Win32API\" -e \"%s\"", expr))
+	elseif executable("powershell")
+		let expr = join(map(wavs, "\"(New-Object System.Media.SoundPlayer \" . string(v:val) . \").PlaySync()\""), ';')
+		return vimproc#system_bg(printf("powershell -Command \"%s\"", expr))
 	elseif executable("afplay")
 		let expr = join(wavs, "\n")
 		return vimproc#system_bg(printf('echo "%s" | awk ''{ print "afplay " $0 }'' | bash', expr))
